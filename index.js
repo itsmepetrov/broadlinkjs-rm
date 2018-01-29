@@ -10,51 +10,30 @@ var Broadlink = module.exports = function(){
 }
 util.inherits(Broadlink, EventEmitter);
 
+var supportedDevices = {
+    0x2712: { type: 'RM2', isPlus: false },
+    0x2737: { type: 'RM Mini', isPlus: false },
+    0x273d: { type: 'RM Pro Phicomm', isPlus: false },
+    0x2783: { type: 'RM2 Home Plus', isPlus: false },
+    0x277c: { type: 'RM2 Home Plus GDT', isPlus: false },
+    0x272a: { type: 'RM2 Pro Plus', isPlus: true },
+    0x2787: { type: 'RM2 Pro Plus2', isPlus: true },
+    0x278b: { type: 'RM2 Pro Plus BL', isPlus: true },
+    0x278f: { type: 'RM Mini Shate', isPlus: false },
+    0x279d: { type: 'RM3 Pro Plus', isPlus: true }
+};
 
-Broadlink.prototype.genDevice = function (devtype, host, mac){
-    var dev;
-    if(devtype == 0x2712){ // RM2
-        dev = new device(host,mac);
-        dev.rm();
-        return dev;;
-    }else if(devtype == 0x2737){ // RM Mini
-        dev = new device(host,mac);
-        dev.rm();
-        return dev;;
-    }else if(devtype == 0x273d){ // RM Pro Phicomm
-        dev = new device(host,mac);
-        dev.rm();
-        return dev;;
-    }else if(devtype == 0x2783){ // RM2 Home Plus
-        dev = new device(host,mac);
-        dev.rm();
-        return dev;;
-    }else if(devtype == 0x277c){ // RM2 Home Plus GDT
-        dev = new device(host,mac);
-        dev.rm();
-        return dev;;
-    }else if(devtype == 0x272a){ // RM2 Pro Plus
-        dev = new device(host,mac);
-        dev.rm(true);
-        return dev;;
-    }else if(devtype == 0x2787){ // RM2 Pro Plus2
-        dev = new device(host,mac);
-        dev.rm(true);
-        return dev;;
-    }else if(devtype == 0x278b){ // RM2 Pro Plus BL
-        dev = new device(host,mac);
-        dev.rm(true);
-        return dev;;
-    }else if(devtype == 0x278f){ // RM Mini Shate
-        dev = new device(host,mac);
-        dev.rm();
-        return dev;;
-    }else{
-      return null;
+Broadlink.prototype.genDevice = function(devtype, host, mac) {
+    var config = supportedDevices[devtype];
+    if (!config) {
+        return null;
     }
+    var dev = new device(config.type, host, mac);
+    dev.rm(config.isPlus);
+    return dev;
 }
 
-Broadlink.prototype.discover = function(){
+Broadlink.prototype.discover = function() {
     self = this;
     var interfaces = os.networkInterfaces();
     var addresses = [];
@@ -69,7 +48,7 @@ Broadlink.prototype.discover = function(){
     var address = addresses[0].split('.');
 
     var cs = dgram.createSocket({ type:'udp4', reuseAddr:true});
-    cs.on('listening', function(){
+    cs.on('listening', function() {
         cs.setBroadcast(true);
 
         var port = cs.address().port;
@@ -150,7 +129,7 @@ Broadlink.prototype.discover = function(){
     cs.bind();
 }
 
-function device( host, mac, timeout=10){
+function device(type, host, mac, timeout = 10) {
     this.host = host;
     this.mac = mac;
     this.emitter = new EventEmitter();
@@ -211,7 +190,7 @@ function device( host, mac, timeout=10){
 
     });
     this.cs.bind();
-    this.type = "Unknown";
+    this.type = type;
 }
 
 device.prototype.auth = function(){
@@ -318,8 +297,7 @@ device.prototype.sendPacket = function( command, payload){
     this.cs.sendto(packet, 0, packet.length, this.host.port, this.host.address);
 }
 
-device.prototype.rm = function(isPlus){
-    this.type = "RM2";
+device.prototype.rm = function(isPlus) {
     this.checkData = function(){
         var packet = Buffer.alloc(16,0);
         packet[0] = 4;
